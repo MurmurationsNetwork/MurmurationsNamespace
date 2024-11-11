@@ -1,9 +1,6 @@
 import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 import { cache } from 'hono/cache'
-import { readFile } from 'fs/promises'
-import { join } from 'path'
-import * as fs from 'fs/promises'
 
 const app = new Hono()
 app.use('*', logger())
@@ -14,23 +11,28 @@ type JSONLDDocument = {
   [key: string]: any
 }
 
+// Import all JSON-LD files at build time
+const contextFiles = import.meta.glob('../contexts/**/*.jsonld', { 
+  eager: true,
+  as: 'raw'
+})
+
+const vocabFiles = import.meta.glob('../vocab/**/*.html', { 
+  eager: true,
+  as: 'raw'
+})
+
 // Helpers
-async function loadDocument(filePath: string): Promise<JSONLDDocument> {
-  try {
-    return JSON.parse(await readFile(filePath, 'utf-8'))
-  } catch (error) {
-    console.error(`Error loading document ${filePath}:`, error)
-    throw error
+async function loadDocument(path: string): Promise<JSONLDDocument> {
+  const content = contextFiles[path]
+  if (!content) {
+    throw new Error(`Document not found: ${path}`)
   }
+  return JSON.parse(content)
 }
 
 async function fileExists(path: string): Promise<boolean> {
-  try {
-    await fs.access(path)
-    return true
-  } catch {
-    return false
-  }
+  return vocabFiles[path] !== undefined
 }
 
 // Main handler
@@ -42,7 +44,7 @@ const serveDocument = (basePath: string = '') => {
     if (path.endsWith('.jsonld')) {
       // Only serve .jsonld files from contexts directory
       if (basePath === 'contexts') {
-        const contextPath = join(process.cwd(), basePath, path)
+        const contextPath = `../${basePath}/${path}`
         try {
           const doc = await loadDocument(contextPath)
           return c.json(doc, {
@@ -57,9 +59,9 @@ const serveDocument = (basePath: string = '') => {
     }
 
     // Try vocab directory first (always HTML)
-    const vocabPath = join(process.cwd(), 'vocab', `${path}.html`)
+    const vocabPath = `../vocab/${path}.html`
     if (await fileExists(vocabPath)) {
-      return c.html(await readFile(vocabPath, 'utf-8'))
+      return c.html(vocabFiles[vocabPath])
     }
 
     // Redirect to .jsonld URL for context files
