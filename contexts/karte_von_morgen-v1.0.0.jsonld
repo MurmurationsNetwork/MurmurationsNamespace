@@ -4,7 +4,7 @@
         "murm": "https://ns.murmurations.network/",
         "linked_schemas": "murm:linkedSchemas",
         "name": "name",
-        "primary_url": "url",
+        "primary_url": {"@type": "@id", "@id": "@id"},
         "description": "description",
         "latitude": "latitude",
         "longitude": "longitude",
