@@ -76,12 +76,12 @@ const serveDocument = (basePath: string = '') => {
 // Routes
 app.get('/contexts/:path{.*}', cache({
   cacheName: 'contexts-cache',
-  cacheControl: 'public, max-age=86400',
+  cacheControl: 'public, max-age=300',
 }), serveDocument('contexts'))
 
 app.get('/:path{.*}', cache({
   cacheName: 'root-cache',
-  cacheControl: 'public, max-age=86400',
+  cacheControl: 'public, max-age=300',
 }), serveDocument())
 
 app.get('/', async (c) => {
